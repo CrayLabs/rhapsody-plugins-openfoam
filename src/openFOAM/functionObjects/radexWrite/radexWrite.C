@@ -13,12 +13,8 @@
 #include "uniformDimensionedFields.H"
 #include "Pstream.H"
 
-// Select RaDex backend at compile time (defaults to Dragon DDict)
-#if defined(RADEX_BACKEND_REDIS)
-#   include "radex/smartredis.hpp"
-#else
-#   include "radex/dragon.hpp"
-#endif
+#include "radex/dragon.hpp"
+#include "radex/smartredis.hpp"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -44,15 +40,25 @@ Foam::functionObjects::radexWrite::radexWrite
 :
     fvMeshFunctionObject(name, runTime, dict),
     fieldNames_(),
-    scalarNames_()
+    scalarNames_(),
+    backend_(dict.getOrDefault<word>("backend", "dragon"))
 {
     read(dict);
 
-#if defined(RADEX_BACKEND_REDIS)
-    client_ = std::make_unique<radex::redis::smartredis::Client>();
-#else
-    client_ = std::make_unique<radex::drg::ddict::Client>();
-#endif
+    if (backend_ == "redis")
+    {
+        client_ = std::make_unique<radex::redis::smartredis::Client>();
+    }
+    else
+    {
+        if (backend_ != "dragon")
+        {
+            WarningInFunction
+                << "Unknown backend '" << backend_
+                << "'; defaulting to dragon" << nl;
+        }
+        client_ = std::make_unique<radex::drg::ddict::Client>();
+    }
 
     Info<< type() << " " << name
         << ": initialised RaDex client on subdomain "

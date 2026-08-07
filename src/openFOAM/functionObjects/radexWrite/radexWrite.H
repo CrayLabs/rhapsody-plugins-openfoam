@@ -15,9 +15,9 @@ Description
       - volVectorField             -> tensor of shape [nCells, 3] (via `fields`)
       - uniformDimensionedScalarField -> single scalar (via `scalars`)
 
-    Backend is selected at compile time:
-      -DRADEX_BACKEND_DRAGON   (default) Dragon DDict
-      -DRADEX_BACKEND_REDIS    SmartRedis
+    Backend is selected at runtime via the `backend` dictionary entry:
+      backend   dragon;  (default)
+      backend   redis;
 
     Example controlDict entry:
     \verbatim
@@ -66,6 +66,9 @@ class radexWrite
 
         //- Names of uniformDimensionedScalarFields to export as scalars
         wordList scalarNames_;
+
+        //- Selected backend ("dragon" or "redis")
+        word backend_;
 
         //- RaDex client handle
         std::unique_ptr<radex::IClient> client_;

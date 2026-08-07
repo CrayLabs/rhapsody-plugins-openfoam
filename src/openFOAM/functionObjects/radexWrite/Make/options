@@ -1,6 +1,3 @@
-/* Select backend via EXE_INC: add -DRADEX_BACKEND_REDIS for SmartRedis,
-   or omit (default) for Dragon DDict. */
-
 RADEX_DIR ?= $(HOME)/dev/RaDex
 
 EXE_INC = \
