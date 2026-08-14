@@ -222,3 +222,4 @@ __marimo__/
 rhapsody.session.*
 ddict_orc_*
 runinfo/
+src/OpenFOAM/functionObjects/*/Make/*/

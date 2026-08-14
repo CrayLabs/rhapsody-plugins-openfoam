@@ -9,7 +9,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from rhapsody.api import ComputeTask
+from rhapsody.api import ComputeTask, Session
+from dragon.data.ddict import DDict
+from asyncio import Future
 
 
 def resolve_runfunctions_path(runfunctions_path: str | Path | None = None) -> str:
@@ -52,9 +54,11 @@ class OFTask:
     """
 
     executable: str = ""
-    args: list[str] = field(default_factory=list)
+    args: list[str | Path] = field(default_factory=list)
     options: dict[str, Any] = field(default_factory=dict)
     num_ranks: int = 1
+    execute_async: bool = False
+    radex_store: str | DDict | None = None
 
     task_backend_specific_kwargs: dict[str, Any] = field(default_factory=dict)
     _options: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
@@ -62,6 +66,8 @@ class OFTask:
     def __post_init__(self) -> None:
         self._options = {}
         self.add_options(self.options)
+        if isinstance(self.radex_store, DDict):
+            self.radex_store = self.radex_store.serialize()
 
     @staticmethod
     def _is_none_like(value: Any) -> bool:
@@ -70,6 +76,15 @@ class OFTask:
         if value is None:
             return True
         return isinstance(value, str) and value.strip().lower() in {"none", "null", "nil"}
+
+    @staticmethod
+    def _stringify_cli_value(value: Any) -> str:
+        """Convert CLI values to strings, normalizing paths with as_posix."""
+
+        if isinstance(value, Path):
+            return value.as_posix()
+
+        return str(value)
 
     def add_options(self, options: dict[str, Any] | None) -> None:
         """Add dictionary options after normalizing names and values.
@@ -115,13 +130,13 @@ class OFTask:
             if self._is_none_like(value):
                 rendered.append(option)
             else:
-                rendered.extend([option, str(value)])
+                rendered.extend([option, self._stringify_cli_value(value)])
         return rendered
 
     def _build_arguments(self) -> list[str]:
         """Build full command arguments from args, options, and parallel settings."""
 
-        task_args = list(self.args)
+        task_args = [self._stringify_cli_value(arg) for arg in self.args]
         task_args.extend(self._render_option_arguments())
 
         if (
@@ -148,6 +163,13 @@ class OFTask:
 
         backend_kwargs = dict(self.task_backend_specific_kwargs)
         task_args = self._build_arguments()
+
+        if self.radex_store is not None:
+            process_template = dict(backend_kwargs.get("process_template", {}) or {})
+            env = dict(process_template.get("env", {}) or {})
+            env["RADEX_STORE"] = self._stringify_cli_value(self.radex_store)
+            process_template["env"] = env
+            backend_kwargs["process_template"] = process_template
 
         if self.num_ranks > 1 and "process_templates" not in backend_kwargs:
             template_cfg = dict(backend_kwargs.pop("process_template", {}) or {})
@@ -246,7 +268,7 @@ class OFRunFunction(OFTask):
             normalized = OFTask._normalize_option_name(name)
             tokens.append(f"-{normalized}")
             if not OFTask._is_none_like(value):
-                tokens.append(str(value))
+                tokens.append(OFTask._stringify_cli_value(value))
 
         return " ".join(shlex.quote(token) for token in tokens)
 
@@ -256,7 +278,7 @@ class OFRunFunction(OFTask):
         For RunFunctions tasks, options are already rendered into the shell payload.
         """
 
-        return list(self.args)
+        return [self._stringify_cli_value(arg) for arg in self.args]
 
 
 @dataclass
@@ -290,19 +312,35 @@ class OFStage:
 
     def run_local(
         self,
-        check: bool = False,
+        check: bool = True,
         timeout: float | None = None,
         cwd: str | Path | None = None,
     ) -> list[tuple[str, str]]:
         """Execute each stage task locally and return their ``(stdout, stderr)`` outputs."""
         return [task.run_local(check=check, timeout=timeout, cwd=cwd) for task in self.tasks]
 
-    async def execute(self, session):
-        """Execute each task in serial and wait for completion
+    async def execute(self, session: Session) -> list[Future]:
+        """Execute sync tasks in order while async tasks run in background.
 
         Args:
             session: the RHAPSODY session used to submit tasks
         """
-        for task in self.to_tasks():
-            await session.submit_tasks([task])
-            await task
+
+        async_tasks: list[Any] = []
+        sync_tasks: list[Any] = []
+        for task in self.tasks:
+            compute_task = task.to_compute_task()
+            if task.execute_async:
+                async_tasks.append(compute_task)
+            else:
+                sync_tasks.append(compute_task)
+
+        async_futures = []
+        if async_tasks:
+            async_futures = await session.submit_tasks(async_tasks)
+
+        for task in sync_tasks:
+            futures = await session.submit_tasks([task])
+            await futures[0]
+
+        return async_futures

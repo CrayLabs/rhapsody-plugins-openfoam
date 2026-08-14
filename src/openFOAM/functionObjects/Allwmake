@@ -1,0 +1,18 @@
+#!/usr/bin/bash
+
+export RADEX_DIR=~/dev/RaDex/install
+export DRAGON_LIBS=$(dragon-config -l)
+export DRAGON_INCLUDES=$(dragon-config -o)
+
+export SMARTREDIS_DIR=/Users/ashao/dev/hpe/SmartRedis/install
+
+# Create the $FOAM_USER_LIBBIN if not existing.
+# - This happens with a fresh OpenFOAM installation.
+# - openfoam-smartsim libraries are placed into $FOAM_USER_LIBBIN
+if [ ! -d "$FOAM_USER_LIBBIN" ];
+then
+    mkdir -p $FOAM_USER_LIBBIN
+fi
+
+## Compile OpenFOAM libs
+wmake libso radexWrite

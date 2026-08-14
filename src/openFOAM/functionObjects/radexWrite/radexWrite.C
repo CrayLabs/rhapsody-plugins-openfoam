@@ -12,6 +12,9 @@
 #include "volFields.H"
 #include "uniformDimensionedFields.H"
 #include "Pstream.H"
+#include "functionObjectList.H"
+#include "functionObjectProperties.H"
+#include "profilingTrigger.H"
 
 #include "radex/dragon.hpp"
 #include "radex/smartredis.hpp"
@@ -41,7 +44,8 @@ Foam::functionObjects::radexWrite::radexWrite
     fvMeshFunctionObject(name, runTime, dict),
     fieldNames_(),
     scalarNames_(),
-    backend_(dict.getOrDefault<word>("backend", "dragon"))
+    backend_(dict.getOrDefault<word>("backend", "dragon")),
+    identifier_("")
 {
     read(dict);
 
@@ -75,9 +79,11 @@ bool Foam::functionObjects::radexWrite::read(const dictionary& dict)
 
     dict.readEntry("fields", fieldNames_);
     dict.readIfPresent("scalars", scalarNames_);
+    identifier_ = dict.getOrDefault<word>("identifier", "");
 
     Info<< type() << " " << name() << ": fields = " << fieldNames_
-        << ", scalars = " << scalarNames_ << nl;
+        << ", scalars = " << scalarNames_
+        << ", identifier = " << identifier_ << nl;
 
     return true;
 }
@@ -113,16 +119,7 @@ bool Foam::functionObjects::radexWrite::write()
 
     for (const word& fieldName : scalarNames_)
     {
-        if (mesh_.foundObject<uniformDimensionedScalarField>(fieldName))
-        {
-            writeUniformScalar(fieldName, subdomainId);
-        }
-        else
-        {
-            WarningInFunction
-                << "Scalar " << fieldName
-                << " not found in objectRegistry; skipping" << nl;
-        }
+        writeUniformScalar(fieldName, subdomainId);
     }
 
     return true;
@@ -131,7 +128,37 @@ bool Foam::functionObjects::radexWrite::write()
 
 bool Foam::functionObjects::radexWrite::end()
 {
-    return write();
+    const bool ok = write();
+
+    if (Pstream::master())
+    {
+        return writeFinalStep() && ok;
+    }
+
+    return ok;
+}
+
+
+std::string Foam::functionObjects::radexWrite::makeKey
+(
+    const word& fieldName,
+    label subdomainId
+) const
+{
+    const std::string timeStep = mesh_.time().timeName();
+
+    if (identifier_.empty())
+    {
+        return
+            std::string(fieldName) + "_" + timeStep
+          + "_" + std::to_string(subdomainId);
+    }
+
+    std::string key = std::string(identifier_) + "_" +
+        std::string(fieldName)
+      + "_" + timeStep + "_" + std::to_string(subdomainId);
+    Info << type() << " Writing " << key << nl;
+    return key;
 }
 
 
@@ -141,17 +168,26 @@ bool Foam::functionObjects::radexWrite::writeScalarField
     label subdomainId
 )
 {
-    const std::string key =
-        std::string(fieldName) + "_" + std::to_string(subdomainId);
+    addProfiling(radexWriteScalarField, "radexWrite::writeScalarField(", fieldName, ")");
 
-    const auto& sf =
-        mesh_.lookupObject<volScalarField>(fieldName);
-    const scalarField& iF = sf.primitiveField();
-    const radex::detail::MetaInt nCells = iF.size();
+    const std::string key = makeKey(fieldName, subdomainId);
 
-    const std::vector<radex::detail::MetaInt> dims{nCells};
+    const scalarField* iFPtr;
+    {
+        addProfiling(radexWriteScalarFieldLookup, "radexWrite::lookupObject(", fieldName, ")");
 
-    client_->put_tensor<double>(key, dims.data(), dims.size(), iF.cdata(), nCells);
+        const auto& sf = mesh_.lookupObject<volScalarField>(fieldName);
+        iFPtr = &sf.primitiveField();
+    }
+
+    const scalarField& iF = *iFPtr;
+    const radex::detail::MetaInt dims[] = {static_cast<radex::detail::MetaInt>(iF.size())};
+
+    {
+        addProfiling(radexWriteScalarFieldPut, "radexWrite::put_tensor(", fieldName, ")");
+
+        client_->put_tensor<double>(key, dims, 1, iF.cdata(), iF.size());
+    }
 
     return true;
 }
@@ -163,19 +199,27 @@ bool Foam::functionObjects::radexWrite::writeVectorField
     label subdomainId
 )
 {
-    const std::string key =
-        std::string(fieldName) + "_" + std::to_string(subdomainId);
+    addProfiling(radexWriteVectorField, "radexWrite::writeVectorField(", fieldName, ")");
 
-    const auto& vf =
-        mesh_.lookupObject<volVectorField>(fieldName);
-    const vectorField& iF = vf.primitiveField();
-    const radex::detail::MetaInt nCells = iF.size();
+    const std::string key = makeKey(fieldName, subdomainId);
 
-    // vector is 3 contiguous doubles, so the field is already [nCells, 3]
-    const std::vector<radex::detail::MetaInt> dims{nCells, 3};
-    const auto* raw = reinterpret_cast<const double*>(iF.cdata());
+    const vectorField* iFPtr;
+    {
+        addProfiling(radexWriteVectorFieldLookup, "radexWrite::lookupObject(", fieldName, ")");
 
-    client_->put_tensor<double>(key, dims.data(), dims.size(), raw, nCells * 3);
+        const auto& vf = mesh_.lookupObject<volVectorField>(fieldName);
+        iFPtr = &vf.primitiveField();
+    }
+
+    const vectorField& iF = *iFPtr;
+    const radex::detail::MetaInt dims[] = {static_cast<radex::detail::MetaInt>(iF.size()), 3};
+    const auto* elements = reinterpret_cast<const double*>(iF.cdata());
+
+    {
+        addProfiling(radexWriteVectorFieldPut, "radexWrite::put_tensor(", fieldName, ")");
+
+        client_->put_tensor<double>(key, dims, 2, elements, iF.size() * 3);
+    }
 
     return true;
 }
@@ -187,13 +231,83 @@ bool Foam::functionObjects::radexWrite::writeUniformScalar
     label subdomainId
 )
 {
+    addProfiling(radexWriteUniformScalar, "radexWrite::writeUniformScalar(", fieldName, ")");
+
+    const std::string key = makeKey(fieldName, subdomainId);
+
+    if (mesh_.foundObject<uniformDimensionedScalarField>(fieldName))
+    {
+        const auto& f =
+            mesh_.lookupObject<uniformDimensionedScalarField>(fieldName);
+
+        addProfiling(radexWriteUniformScalarPut, "radexWrite::put_scalar(", fieldName, ")");
+
+        client_->put_scalar<double>(key, static_cast<double>(f.value()));
+
+        return true;
+    }
+
+    // Not a registered field object - look for a result stored by another
+    // function object (e.g. surfaceFieldValue), which are kept in the
+    // function-object properties/results dictionary rather than the
+    // objectRegistry. The entry name is auto-generated by the producing
+    // function object (e.g. "areaAverage(inlet,p)"), not user-configurable.
+    const auto& propsDict = mesh_.time().functionObjects().propsDict();
+    const wordList entries(propsDict.objectResultEntries(fieldName));
+
+    if (entries.empty())
+    {
+        WarningInFunction
+            << "Scalar " << fieldName
+            << " not found as a registered field or function object result"
+            << "; skipping" << nl;
+        return false;
+    }
+
+    if (entries.size() > 1)
+    {
+        WarningInFunction
+            << "Function object " << fieldName << " has " << entries.size()
+            << " result entries; only the first (" << entries.first()
+            << ") will be exported" << nl;
+    }
+
+    scalar value;
+    if (!propsDict.getObjectResult<scalar>(fieldName, entries.first(), value))
+    {
+        WarningInFunction
+            << "Result " << entries.first() << " of function object "
+            << fieldName << " is not a scalar; skipping" << nl;
+        return false;
+    }
+
+    if (Pstream::master())
+    {
+        addProfiling(radexWriteResultScalarPut, "radexWrite::put_scalar(", fieldName, ")");
+
+        client_->put_scalar<double>(key, static_cast<double>(value));
+    }
+
+    return true;
+}
+
+
+bool Foam::functionObjects::radexWrite::writeFinalStep()
+{
     const std::string key =
-        std::string(fieldName) + "_" + std::to_string(subdomainId);
+        identifier_.empty()
+      ? std::string("final_step")
+      : std::string(identifier_) + "_final_step";
 
-    const auto& f =
-        mesh_.lookupObject<uniformDimensionedScalarField>(fieldName);
+    client_->put_scalar<double>
+    (
+        key,
+        static_cast<double>(mesh_.time().value())
+    );
 
-    client_->put_scalar<double>(key, static_cast<double>(f.value()));
+    Info<< type() << " " << key
+        << ": wrote final_step from "
+        << Pstream::myProcNo() << nl;
 
     return true;
 }

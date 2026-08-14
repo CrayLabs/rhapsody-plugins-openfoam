@@ -26,7 +26,7 @@ RAS
 
     printCoeffs     on;
 
-    Cmu             0.09
+    Cmu             0.09;
     C1              1.44;
     C2              1.92;
     sigmaEps        1.3;
