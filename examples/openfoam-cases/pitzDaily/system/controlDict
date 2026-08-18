@@ -68,6 +68,8 @@ functions
     {
         type            radexWrite;
         libs            ("$FOAM_USER_LIBBIN/libradexWrite.dylib");
+        executeControl  onEnd;
+        writeControl    onEnd;
 
         // No volume fields exported by this block.
         fields          ();
@@ -76,22 +78,6 @@ functions
         scalars         (avgInlets);
 
         identifier      pitzDaily;
-    }
-
-    radexWriteFinal
-    {
-        type            radexWrite;
-        libs            ("$FOAM_USER_LIBBIN/libradexWrite.dylib");
-
-        // Only run once, when the run finishes.
-        executeControl  onEnd;
-        writeControl    onEnd;
-
-        // Prognostic fields solved by simpleFoam + kEpsilon.
-        fields          (U p k epsilon);
-        scalars         ();
-
-        identifier      pitzDailyFinal;
     }
 }
 

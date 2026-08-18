@@ -6,6 +6,7 @@ from .caseDefinition import CaseDefinition
 from .executableRegistry import OFExecutableRegistry
 from .ofTask import OFTask, OFStage
 from .ofSession import OFSession
+from .utils import OFKey
 
 __all__ = [
 	"CaseDefinition",
