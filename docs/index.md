@@ -2,12 +2,12 @@
 
 **Overview**
 
-`rhapsody-plugins-openfoam` connects [RHAPSODY](https://radical-cybertools.github.io/rhapsody) workflows to [OpenFOAM](https://www.openfoam.com), letting you drive multi-stage CFD cases (meshing, solving, post-processing) as RHAPSODY tasks, and stream field data out of a running solver in real time via a [RaDex](https://github.com/radical-cybertools/RaDex)-backed OpenFOAM function object.
+`rhapsody-plugins-openfoam` connects [RHAPSODY](https://radical-cybertools.github.io/rhapsody) workflows to [OpenFOAM](https://www.openfoam.com), letting you drive multi-stage CFD cases (meshing, solving, post-processing) as RHAPSODY tasks, and stream field data out of a running solver in real time via a [radex](https://github.com/radical-cybertools/radex)-backed OpenFOAM function object.
 
 The project has two parts that can be used independently or together:
 
 - **Python plugin (`rhapsody_plugins.openfoam`)** — case and task abstractions (`CaseDefinition`, `OFStage`, `OFTask`, `OFExecutableRegistry`, `OFSession`) that wrap OpenFOAM utilities and solvers as RHAPSODY tasks, so a case's stages can be scheduled and executed across RHAPSODY execution backends (e.g. Dragon).
-- **OpenFOAM function object (`radexWrite`)** — a compiled `libso` function object that exports `volScalarField`/`volVectorField` data (and other scalar results) from a running solver into a RaDex-backed key-value store at write intervals, so external Python code (training loops, monitors, optimizers) can consume simulation data without touching the filesystem.
+- **OpenFOAM function object (`radexWrite`)** — a compiled `libso` function object that exports `volScalarField`/`volVectorField` data (and other scalar results) from a running solver into a radex-backed key-value store at write intervals, so external Python code (training loops, monitors, optimizers) can consume simulation data without touching the filesystem.
 
 ## Key Features
 

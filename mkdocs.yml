@@ -1,7 +1,7 @@
 site_name: RHAPSODY OpenFOAM Plugins
 site_url: https://CrayLabs.github.io/rhapsody-plugins-openfoam
 site_author: RADICAL Cybertools
-site_description: RHAPSODY plugins for driving OpenFOAM workflows with RaDex-based data exchange.
+site_description: RHAPSODY plugins for driving OpenFOAM workflows with radex-based data exchange.
 
 repo_name: CrayLabs/rhapsody-plugins-openfoam
 repo_url: https://github.com/CrayLabs/rhapsody-plugins-openfoam
@@ -104,7 +104,7 @@ nav:
       - Overview: index.md
       - Get Started: getting-started/index.md
       - Installation: getting-started/installation.md
-      - Building the OpenFOAM Function Object: getting-started/building-the-function-object.md
+      - Building the OpenFOAM Function Objects: getting-started/building-the-function-object.md
       - Quick Start: getting-started/quick-start.md
       - Issues (GitHub): https://github.com/CrayLabs/rhapsody-plugins-openfoam/issues
   - Examples:
