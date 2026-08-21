@@ -18,4 +18,4 @@ package-dir = {"" = "src/python"}
 
 [tool.setuptools.packages.find]
 where = ["src/python"]
-include = ["radical*"]
+include = ["rhapsody_plugins*"]
