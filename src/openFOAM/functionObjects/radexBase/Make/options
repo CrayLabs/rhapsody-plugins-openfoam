@@ -1,15 +1,17 @@
-RADEX_DIR ?=
+RADEX_INCLUDE_DIR ?=
+RADEX_LIB_DIR ?=
 DRAGON_LIBS ?=
 DRAGON_INCLUDES ?=
-SMARTREDIS_DIR ?=
+SMARTREDIS_INCLUDE_DIR ?=
+SMARTREDIS_LIB_DIR ?=
 
 EXE_INC = \
     -std=c++17 \
     -I../../radexIO/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
-    -I$(RADEX_DIR)/include \
-    -I$(SMARTREDIS_DIR)/include \
+    -I$(RADEX_INCLUDE_DIR) \
+    -I$(SMARTREDIS_INCLUDE_DIR) \
     $(DRAGON_INCLUDES)
 
 LIB_LIBS = \
@@ -17,10 +19,10 @@ LIB_LIBS = \
     -lmeshTools \
     -L$(FOAM_USER_LIBBIN) \
     -lradexIO \
-    -L$(RADEX_DIR)/lib \
+    -L$(RADEX_LIB_DIR) \
     -lradex \
-    -Wl,-rpath,$(RADEX_DIR)/lib \
-    -L$(SMARTREDIS_DIR)/lib \
+    -Wl,-rpath,$(RADEX_LIB_DIR) \
+    -L$(SMARTREDIS_LIB_DIR) \
     -lsmartredis \
     $(DRAGON_LIBS) \
     -Wl,-rpath,/Users/ashao/dev/hpc-pe-dragon-dragon/src/dragon/lib
