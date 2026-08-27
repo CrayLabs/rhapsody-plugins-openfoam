@@ -26,7 +26,48 @@ then
     : "${DRAGON_LIBS:=$dragon_libs}"
 fi
 
-export RADEX_DIR SMARTREDIS_DIR DRAGON_LIBS DRAGON_INCLUDES
+find_lib_dir() {
+    local INSTALL_DIR="${1}"
+    local LIB_NAME="${2}"
+
+    local LIB_PATH="$(
+        find ${INSTALL_DIR} \
+            -maxdepth 2 \
+            -name ${LIB_NAME} \
+            -type f \
+            -print \
+            -quit \
+        )"
+
+    if [ -z "${LIB_PATH}" ]; then
+        local FALLBACK_PATH="${INSTALL_DIR}/lib"
+        printf \
+            "Failed to find library directory at install dir '%s'\n" \
+            "${INSTALL_DIR}" \
+            >&2
+        printf \
+            "    Defaulting to '%s'\n" \
+            "${FALLBACK_PATH}" \
+            >&2
+        printf "${FALLBACK_PATH}\n"
+        return 1
+    fi
+
+    dirname "${LIB_PATH}"
+    return 0
+}
+
+RADEX_INCLUDE_DIR="${RADEX_DIR}/include"
+RADEX_LIB_DIR="$(find_lib_dir ${RADEX_DIR} libradex.so)"
+SMARTREDIS_INCLUDE_DIR="${SMARTREDIS_DIR}/include"
+SMARTREDIS_LIB_DIR="$(find_lib_dir ${SMARTREDIS_DIR} libsmartredis.so)"
+
+export DRAGON_INCLUDES \
+       DRAGON_LIBS \
+       RADEX_INCLUDE_DIR \
+       RADEX_LIB_DIR \
+       SMARTREDIS_INCLUDE_DIR \
+       SMARTREDIS_LIB_DIR
 
 # Create the $FOAM_USER_LIBBIN if not existing.
 # - This happens with a fresh OpenFOAM installation.
