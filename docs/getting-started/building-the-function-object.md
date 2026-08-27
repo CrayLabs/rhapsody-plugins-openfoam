@@ -13,11 +13,9 @@ The [`radexRead`](https://github.com/CrayLabs/rhapsody-plugins-openfoam/tree/mai
 
 ## Building
 
-The [`Allwmake`](https://github.com/CrayLabs/rhapsody-plugins-openfoam/blob/main/src/openFOAM/functionObjects/Allwmake) script wires up the required environment variables and compiles the function object with `wmake`:
+The [`Allwmake`](https://github.com/CrayLabs/rhapsody-plugins-openfoam/blob/main/Allwmake) script wires up the required environment variables, compiles the function objects with `wmake`, and installs the Python package:
 
 ```bash
-cd src/openFOAM/functionObjects
-
 export RADEX_DIR=/path/to/radex/install
 export DRAGON_LIBS=$(dragon-config -l)
 export DRAGON_INCLUDES=$(dragon-config -o)
@@ -27,7 +25,9 @@ export SMARTREDIS_DIR=/path/to/SmartRedis/install
 ./Allwmake
 ```
 
-This builds `libradexWrite` and `libradexRead` and installs them into `$FOAM_USER_LIBBIN`, creating the directory first if it doesn't already exist.
+This builds `libradexIO`, `libradexBase`, `libradexWrite` and `libradexRead` and installs them into `$FOAM_USER_LIBBIN`, creating the directory first if it doesn't already exist, then installs the `rhapsody_plugins.openfoam` Python package.
+
+`./Allwclean` reverses the build: it removes the compiled artefacts, deletes the installed libraries from `$FOAM_USER_LIBBIN` so a stale one cannot be picked up by a case, and clears the Python build directories.
 
 ## `radexWrite` Function Object
 

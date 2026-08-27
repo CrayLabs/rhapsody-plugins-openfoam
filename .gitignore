@@ -219,7 +219,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+.DS_Store
+.vscode
+
 rhapsody.session.*
 ddict_orc_*
 runinfo/
-src/OpenFOAM/functionObjects/*/Make/*/
+src/OpenFOAM/**/Make/*/

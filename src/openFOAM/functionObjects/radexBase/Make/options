@@ -5,7 +5,6 @@ SMARTREDIS_DIR ?=
 
 EXE_INC = \
     -std=c++17 \
-    -I../radexBase/lnInclude \
     -I../../radexIO/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
@@ -18,7 +17,6 @@ LIB_LIBS = \
     -lmeshTools \
     -L$(FOAM_USER_LIBBIN) \
     -lradexIO \
-    -lradexBase \
     -L$(RADEX_DIR)/lib \
     -lradex \
     -Wl,-rpath,$(RADEX_DIR)/lib \
