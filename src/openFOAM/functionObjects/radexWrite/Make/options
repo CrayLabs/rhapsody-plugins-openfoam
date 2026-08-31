@@ -1,6 +1,7 @@
 RADEX_INCLUDE_DIR ?=
 RADEX_LIB_DIR ?=
 DRAGON_LIBS ?=
+DRAGON_LIB_DIR ?=
 DRAGON_INCLUDES ?=
 SMARTREDIS_INCLUDE_DIR ?=
 SMARTREDIS_LIB_DIR ?=
@@ -27,4 +28,4 @@ LIB_LIBS = \
     -L$(SMARTREDIS_LIB_DIR) \
     -lsmartredis \
     $(DRAGON_LIBS) \
-    -Wl,-rpath,/Users/ashao/dev/hpc-pe-dragon-dragon/src/dragon/lib
+    -Wl,-rpath,$(DRAGON_LIB_DIR)
