@@ -1,4 +1,5 @@
 from rhapsody.backends import DragonExecutionBackend
+from rhapsody.backends.data import DragonDataBackend
 
 import rhapsody_plugins.openfoam as rof
 from dragon.data.ddict import DDict
@@ -24,13 +25,13 @@ def initialize_optimizer():
     return skopt.Optimizer(dimensions=bounds, random_state=1, base_estimator="gp")
 
 
-def create_case(registry, radex_store, parameter_values, case_index):
+def create_case(registry, radex_store_descriptor, parameter_values, case_index):
     parameters = KEpsilonParameters(*parameter_values)
     return pitzDailyCase(
         registry,
         parameters,
         f"pD-{case_index:04d}",
-        radex_store.serialize(),
+        radex_store_descriptor,
         TARGET_AVGINLETS,
     )
 
@@ -48,16 +49,17 @@ async def main(ensemble_size=5, max_iterations=10, convergence=1e-3):
 
     mp.set_start_method("dragon", force=True)
 
-    radex_store = DDict(
+    backend = await DragonExecutionBackend()
+    radex_store = await DragonDataBackend(
         managers_per_node=1,
         n_nodes=1,
         total_mem=512 * 1024 * 1024,
-        wait_for_keys=True,
         working_set_size=2 + 2,
     )
+    radex_store_descriptor = radex_store.endpoints[0].serialize()
 
-    backend = await DragonExecutionBackend()
-    client = Client(radex_store.serialize(), timeout=30)
+
+    client = Client(radex_store_descriptor, timeout=30)
     registry = rof.OFExecutableRegistry()
     optimizer = initialize_optimizer()
     next_case_index = 0
@@ -71,7 +73,7 @@ async def main(ensemble_size=5, max_iterations=10, convergence=1e-3):
             parameter_sets = optimizer.ask(n_points=ensemble_size)
             cases = [
                 create_case(
-                    registry, radex_store, parameter_values, next_case_index + offset
+                    registry, radex_store_descriptor, parameter_values, next_case_index + offset
                 )
                 for offset, parameter_values in enumerate(parameter_sets)
             ]
@@ -99,7 +101,8 @@ async def main(ensemble_size=5, max_iterations=10, convergence=1e-3):
                 print(
                     f"Iteration {iteration}: best parameters "
                     f"{best_case.parameters.pretty_print()}; "
-                    f"{best_case.results.pretty_print()}"
+                    f"{best_case.results.pretty_print()}",
+                    flush=True
                 )
 
 

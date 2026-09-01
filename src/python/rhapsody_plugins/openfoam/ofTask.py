@@ -167,6 +167,17 @@ class OFTask:
         if self.radex_store is not None:
             process_template = dict(backend_kwargs.get("process_template", {}) or {})
             env = dict(process_template.get("env", {}) or {})
+            if os.name == "posix" and os.uname().sysname == "Darwin":
+                foam_user_libbin = os.environ.get("FOAM_USER_LIBBIN")
+                if foam_user_libbin:
+                    fallback_paths = env.get("DYLD_FALLBACK_LIBRARY_PATH", "")
+                    env["DYLD_FALLBACK_LIBRARY_PATH"] = os.pathsep.join(
+                        path
+                        for path in (foam_user_libbin, fallback_paths)
+                        if path
+                    )
+            elif library_path := os.environ.get("LD_LIBRARY_PATH"):
+                env.setdefault("LD_LIBRARY_PATH", library_path)
             env["RADEX_STORE"] = self._stringify_cli_value(self.radex_store)
             process_template["env"] = env
             backend_kwargs["process_template"] = process_template
@@ -179,6 +190,7 @@ class OFTask:
             executable=self.executable,
             arguments=task_args,
             task_backend_specific_kwargs=backend_kwargs,
+            capture_stdio=True
         )
 
     def run_local(
