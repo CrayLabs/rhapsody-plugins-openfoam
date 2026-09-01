@@ -51,8 +51,16 @@ RADEX_LIB_DIR="$(find_lib_dir ${RADEX_DIR} libradex)"
 SMARTREDIS_INCLUDE_DIR="${SMARTREDIS_DIR}/include"
 SMARTREDIS_LIB_DIR="$(find_lib_dir ${SMARTREDIS_DIR} libsmartredis)"
 
+# Note below can be replaced with DRAGON_LIB_DIR="$(dragon-config -b)/lib" in the
+# next Dragon release
+if [ -z "$DRAGON_LIB_DIR" ]
+then
+    DRAGON_LIB_DIR=$(echo $DRAGON_LIBS | sed -E 's/.*-L[[:space:]]*([^[:space:]]+).*/\1/')
+fi
+
 export DRAGON_INCLUDES \
        DRAGON_LIBS \
+       DRAGON_LIB_DIR \
        RADEX_INCLUDE_DIR \
        RADEX_LIB_DIR \
        SMARTREDIS_INCLUDE_DIR \

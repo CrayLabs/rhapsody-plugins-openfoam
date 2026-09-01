@@ -2,7 +2,8 @@ from rhapsody.backends import DragonExecutionBackend
 
 import rhapsody_plugins.openfoam as rof
 from dragon.data.ddict import DDict
-from radex import DragonClient as Client
+from radex.clients.core import DragonClient as Client
+
 import skopt
 
 from pitzdaily_case import KEpsilonParameters, pitzDailyCase
