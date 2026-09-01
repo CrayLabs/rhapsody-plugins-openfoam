@@ -30,7 +30,7 @@ find_lib_dir() {
     local install_dir="$1"
     local lib="$2"
 
-    dir=$(
+    local dir=$(
         find "$install_dir" -type f \( \
                 -name "${lib}.so" -o \
                 -name "${lib}.dylib" -o \
