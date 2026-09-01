@@ -37,12 +37,12 @@ find_lib_dir() {
                 -name "${lib}.a" \
              \) -exec dirname {} \; -quit
     )
-    
+
     if [[ -z "$dir" ]]; then
         printf 'Error: could not find %s under %s\n' "$lib" "$root" >&2
         return 1
     fi
-    
+
     echo "$dir"
 }
 
