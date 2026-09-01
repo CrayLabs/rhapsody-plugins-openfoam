@@ -27,40 +27,29 @@ then
 fi
 
 find_lib_dir() {
-    local INSTALL_DIR="${1}"
-    local LIB_NAME="${2}"
+    local install_dir="$1"
+    local lib="$2"
 
-    local LIB_PATH="$(
-        find ${INSTALL_DIR} \
-            -maxdepth 2 \
-            -name ${LIB_NAME} \
-            -type f \
-            -print \
-            -quit \
-        )"
+    local dir=$(
+        find "$install_dir" -type f \( \
+                -name "${lib}.so" -o \
+                -name "${lib}.dylib" -o \
+                -name "${lib}.a" \
+             \) -exec dirname {} \; -quit
+    )
 
-    if [ -z "${LIB_PATH}" ]; then
-        local FALLBACK_PATH="${INSTALL_DIR}/lib"
-        printf \
-            "Failed to find library directory at install dir '%s'\n" \
-            "${INSTALL_DIR}" \
-            >&2
-        printf \
-            "    Defaulting to '%s'\n" \
-            "${FALLBACK_PATH}" \
-            >&2
-        printf "${FALLBACK_PATH}\n"
+    if [[ -z "$dir" ]]; then
+        printf 'Error: could not find %s under %s\n' "$lib" "$root" >&2
         return 1
     fi
 
-    dirname "${LIB_PATH}"
-    return 0
+    echo "$dir"
 }
 
 RADEX_INCLUDE_DIR="${RADEX_DIR}/include"
-RADEX_LIB_DIR="$(find_lib_dir ${RADEX_DIR} libradex.so)"
+RADEX_LIB_DIR="$(find_lib_dir ${RADEX_DIR} libradex)"
 SMARTREDIS_INCLUDE_DIR="${SMARTREDIS_DIR}/include"
-SMARTREDIS_LIB_DIR="$(find_lib_dir ${SMARTREDIS_DIR} libsmartredis.so)"
+SMARTREDIS_LIB_DIR="$(find_lib_dir ${SMARTREDIS_DIR} libsmartredis)"
 
 export DRAGON_INCLUDES \
        DRAGON_LIBS \
