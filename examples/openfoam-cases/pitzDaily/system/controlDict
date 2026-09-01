@@ -67,9 +67,10 @@ functions
     radexWrite
     {
         type            radexWrite;
-        libs            ("$FOAM_USER_LIBBIN/libradexWrite.dylib");
+        libs            (radexWrite);
         executeControl  onEnd;
         writeControl    onEnd;
+        errors          strict;
 
         // No volume fields exported by this block.
         fields          ();

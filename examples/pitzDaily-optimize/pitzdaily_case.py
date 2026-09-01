@@ -7,8 +7,10 @@ import numpy as np
 from rhapsody_plugins.openfoam import CaseDefinition
 from rhapsody_plugins.openfoam.utils import OFKey
 
+from radex.handles.handles import IncomingHandle
+
 if TYPE_CHECKING:
-    from radex import DragonClient
+    from radex.clients.core import DragonClient
 
 
 @dataclass
@@ -130,9 +132,10 @@ class pitzDailyCase(CaseDefinition):
         max_iter: int = 2000,
     ):
         try:
-            final_step = client.get_scalar(OFKey(self.identifier, "final_step"))
+            final_step = client.get_scalar(
+                IncomingHandle(OFKey(self.identifier, "final_step")))
             avg_inlets = client.get_scalar(
-                OFKey(self.identifier, "avgInlets", time=final_step, rank=0)
+                IncomingHandle(OFKey(self.identifier, "avgInlets", time=final_step, rank=0))
             )
             results = pitzDailyResults(
                 final_step=int(final_step),
@@ -141,6 +144,7 @@ class pitzDailyCase(CaseDefinition):
                 converged=final_step < max_iter,
             )
         except:
+            print(f"WARNING: {self.identifier} failed", flush=True)
             results = pitzDailyResults(
                 final_step=None,
                 avg_inlets=None,
