@@ -25,5 +25,6 @@ LIB_LIBS = \
     -Wl,-rpath,$(RADEX_LIB_DIR) \
     -L$(SMARTREDIS_LIB_DIR) \
     -lsmartredis \
+    -Wl,-rpath,$(SMARTREDIS_LIB_DIR) \
     $(DRAGON_LIBS) \
     -Wl,-rpath,$(DRAGON_LIB_DIR)
