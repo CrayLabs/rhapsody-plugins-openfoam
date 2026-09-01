@@ -26,7 +26,37 @@ then
     : "${DRAGON_LIBS:=$dragon_libs}"
 fi
 
-export RADEX_DIR SMARTREDIS_DIR DRAGON_LIBS DRAGON_INCLUDES
+find_lib_dir() {
+    local install_dir="$1"
+    local lib="$2"
+
+    local dir=$(
+        find "$install_dir" -type f \( \
+                -name "${lib}.so" -o \
+                -name "${lib}.dylib" -o \
+                -name "${lib}.a" \
+             \) -exec dirname {} \; -quit
+    )
+
+    if [[ -z "$dir" ]]; then
+        printf 'Error: could not find %s under %s\n' "$lib" "$root" >&2
+        return 1
+    fi
+
+    echo "$dir"
+}
+
+RADEX_INCLUDE_DIR="${RADEX_DIR}/include"
+RADEX_LIB_DIR="$(find_lib_dir ${RADEX_DIR} libradex)"
+SMARTREDIS_INCLUDE_DIR="${SMARTREDIS_DIR}/include"
+SMARTREDIS_LIB_DIR="$(find_lib_dir ${SMARTREDIS_DIR} libsmartredis)"
+
+export DRAGON_INCLUDES \
+       DRAGON_LIBS \
+       RADEX_INCLUDE_DIR \
+       RADEX_LIB_DIR \
+       SMARTREDIS_INCLUDE_DIR \
+       SMARTREDIS_LIB_DIR
 
 # Create the $FOAM_USER_LIBBIN if not existing.
 # - This happens with a fresh OpenFOAM installation.
