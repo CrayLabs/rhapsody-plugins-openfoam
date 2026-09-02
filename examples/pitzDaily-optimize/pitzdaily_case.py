@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from math import sqrt
 from typing import TYPE_CHECKING, Optional
@@ -11,6 +12,9 @@ from radex.handles.handles import IncomingHandle
 
 if TYPE_CHECKING:
     from radex.clients.core import DragonClient
+
+
+OPENFOAM_CASES=os.getenv("OPENFOAM_CASE_DIR", default="../openfoam-cases")
 
 
 @dataclass
@@ -77,7 +81,7 @@ class pitzDailyCase(CaseDefinition):
         self.identifier = identifier
         self.target_avg_inlets = target_avg_inlets
         super().__init__(
-            "../openfoam-cases/pitzDaily",
+            f"{OPENFOAM_CASES}/pitzDaily",
             f"./run-{identifier}",
             clean=clean,
         )
