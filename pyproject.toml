@@ -13,6 +13,11 @@ dependencies = [
 	"rhapsody-py",
 ]
 
+[project.optional-dependencies]
+examples = [
+    "scikit-optimize",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src/python"}
 
