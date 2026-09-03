@@ -41,7 +41,7 @@ def update_optimizer(optimizer, case):
         optimizer.tell(case.parameters.as_optimizer_list(), case.results.loss)
 
 
-async def main(max_concurrent_cases=5, max_cases=50, convergence=1e-3):
+async def main(max_concurrent_cases=32, max_cases=128, convergence=1e-5):
     if max_concurrent_cases < 1:
         raise ValueError("max_concurrent_cases must be at least 1")
 
